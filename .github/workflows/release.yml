@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  #   push:
+  #     tags:
+  #       - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        type: boolean
+        default: true
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      PROJECT_NAME: "Thaw.xcodeproj"
+      SCHEME_NAME: "Thaw"
+      APP_NAME: "Thaw.app"
+      ZIP_NAME: "Thaw.zip"
+      MACOSX_DEPLOYMENT_TARGET: "26.0"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag name format
+        id: validate
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          if [[ ! "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag name format. Must be in the form v1.2.3"
+            exit 1
+          fi
+
+      - name: Configure signing
+        if: ${{ !inputs.dry_run }}
+        env:
+          APPLE_APPLICATION_CERT: ${{ secrets.APPLE_APPLICATION_CERT }}
+          APPLE_APPLICATION_CERT_PASSWORD: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/buildagent.keychain"
+          keychain_password="password1"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security default-keychain -s "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          base64 -D <<<"$APPLE_APPLICATION_CERT" > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" \
+            -P "$APPLE_APPLICATION_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S "apple-tool:,apple:,codesign:" \
+            -s -k "$keychain_password" "$keychain"
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Build (dry run)
+        if: ${{ inputs.dry_run }}
+        run: |
+          xcodebuild archive \
+            -project "${{ env.PROJECT_NAME }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -destination platform=macOS \
+            -configuration Release \
+            -archivePath build/Archive.xcarchive \
+            MACOSX_DEPLOYMENT_TARGET=${{ env.MACOSX_DEPLOYMENT_TARGET }} \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build
+        if: ${{ !inputs.dry_run }}
+        run: |
+          xcodebuild archive \
+            -project "${{ env.PROJECT_NAME }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -destination platform=macOS \
+            -configuration Release \
+            -archivePath build/Archive.xcarchive \
+            MACOSX_DEPLOYMENT_TARGET=${{ env.MACOSX_DEPLOYMENT_TARGET }} \
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            CODE_SIGN_IDENTITY="Developer ID Application"
+
+      - name: Export Archive
+        if: ${{ !inputs.dry_run }}
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          /usr/libexec/PlistBuddy \
+            -c "Add :method string developer-id" \
+            -c "Add :teamID string $APPLE_TEAM_ID" \
+            -c "Add :signingStyle string automatic" \
+            -c "Add :destination string export" \
+            /tmp/ExportOptions.plist
+
+          xcodebuild -exportArchive \
+            -archivePath build/Archive.xcarchive \
+            -exportPath build/Export \
+            -exportOptionsPlist /tmp/ExportOptions.plist
+
+          cd build/Export
+          zip -r "../${{ env.ZIP_NAME }}" "${{ env.APP_NAME }}"
+
+      - name: Notarize
+        if: ${{ !inputs.dry_run }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool submit "build/${{ env.ZIP_NAME }}" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple "build/Export/${{ env.APP_NAME }}"
+          cd build/Export
+          zip -r "../${{ env.ZIP_NAME }}" "${{ env.APP_NAME }}"
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/${{ env.ZIP_NAME }}
+          generate_release_notes: true
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
