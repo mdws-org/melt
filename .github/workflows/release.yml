@@ -1,11 +1,15 @@
 name: Release
 
 on:
-  #   push:
-  #     tags:
-  #       - "v*"
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
+      tag:
+        description: Release tag to publish (for example, v1.2.3)
+        required: true
+        type: string
       dry_run:
         type: boolean
         default: true
@@ -27,9 +31,10 @@ jobs:
 
       - name: Validate tag name format
         id: validate
-        if: github.event_name != 'workflow_dispatch'
+        env:
+          TAG_NAME: ${{ inputs.tag || github.ref_name }}
         run: |
-          if [[ ! "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid tag name format. Must be in the form v1.2.3"
             exit 1
           fi
@@ -41,7 +46,8 @@ jobs:
           APPLE_APPLICATION_CERT_PASSWORD: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
         run: |
           keychain="$RUNNER_TEMP/buildagent.keychain"
-          keychain_password="password1"
+          keychain_password="$(openssl rand -base64 32)"
+
           security create-keychain -p "$keychain_password" "$keychain"
           security default-keychain -s "$keychain"
           security unlock-keychain -p "$keychain_password" "$keychain"
@@ -113,6 +119,7 @@ jobs:
             --wait
 
           xcrun stapler staple "build/Export/${{ env.APP_NAME }}"
+          xcrun stapler validate "build/Export/${{ env.APP_NAME }}"
           cd build/Export
           zip -r "../${{ env.ZIP_NAME }}" "${{ env.APP_NAME }}"
 
@@ -120,6 +127,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: build/${{ env.ZIP_NAME }}
           generate_release_notes: true
           draft: true
