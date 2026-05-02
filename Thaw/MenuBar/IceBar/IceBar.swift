@@ -325,6 +325,11 @@ private struct IceBarContentView: View {
         displaySettings.configuration(for: screen.displayID).gridColumns
     }
 
+    private var itemSpacing: CGFloat {
+        let offset = appState.settings.general.itemSpacingOffset
+        return max(0, offset.rounded())
+    }
+
     private var horizontalPadding: CGFloat {
         3
     }
@@ -349,16 +354,15 @@ private struct IceBarContentView: View {
         return menuBarHeight > 0 ? menuBarHeight : nil
     }
 
-    /// The maximum rendered width of any item in the current section,
-    /// including the 6pt horizontal padding applied in ``IceBarItemView``.
+    /// The maximum rendered width of any item in the current section.
     private var maxItemWidth: CGFloat {
         guard let maxHeight = itemMaxHeight, maxHeight > 0 else { return 0 }
         let widths = items.compactMap { item -> CGFloat? in
             guard let cachedImage = imageCache.images[item.tag] else { return nil }
             let image = cachedImage.nsImage
-            guard image.size.height > 0 else { return image.size.width + 6 }
+            guard image.size.height > 0 else { return image.size.width }
             let scale = maxHeight / image.size.height
-            return image.size.width * scale + 6
+            return image.size.width * scale
         }
         return widths.max() ?? maxHeight
     }
@@ -543,7 +547,7 @@ private struct IceBarContentView: View {
             switch layout {
             case .horizontal:
                 ScrollView(.horizontal) {
-                    HStack(spacing: 0) {
+                    HStack(spacing: itemSpacing) {
                         ForEach(items, id: \.windowID) { item in
                             IceBarItemView(
                                 imageCache: imageCache,
@@ -553,6 +557,7 @@ private struct IceBarContentView: View {
                                 section: section,
                                 displayID: screen.displayID,
                                 maxHeight: itemMaxHeight,
+                                hasRoundedShape: configuration.hasRoundedShape,
                                 tooltipDelay: appState.settings.advanced.tooltipDelay,
                                 isLightBackground: isLightBackground
                             )
@@ -569,7 +574,7 @@ private struct IceBarContentView: View {
 
             case .vertical:
                 ScrollView(.vertical) {
-                    VStack(spacing: 0) {
+                    VStack(spacing: itemSpacing) {
                         ForEach(items, id: \.windowID) { item in
                             IceBarItemView(
                                 imageCache: imageCache,
@@ -579,6 +584,7 @@ private struct IceBarContentView: View {
                                 section: section,
                                 displayID: screen.displayID,
                                 maxHeight: itemMaxHeight,
+                                hasRoundedShape: configuration.hasRoundedShape,
                                 tooltipDelay: appState.settings.advanced.tooltipDelay,
                                 isLightBackground: isLightBackground
                             )
@@ -597,7 +603,7 @@ private struct IceBarContentView: View {
                             Array(items[start ..< Swift.min(start + gridColumns, items.count)])
                         }
                         ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, rowItems in
-                            HStack(spacing: 0) {
+                            HStack(spacing: itemSpacing) {
                                 ForEach(rowItems, id: \.windowID) { item in
                                     IceBarItemView(
                                         imageCache: imageCache,
@@ -607,6 +613,7 @@ private struct IceBarContentView: View {
                                         section: section,
                                         displayID: screen.displayID,
                                         maxHeight: itemMaxHeight,
+                                        hasRoundedShape: configuration.hasRoundedShape,
                                         tooltipDelay: appState.settings.advanced.tooltipDelay,
                                         isLightBackground: isLightBackground
                                     )
@@ -649,8 +656,14 @@ private struct IceBarItemView: View {
     let section: MenuBarSection.Name
     let displayID: CGDirectDisplayID
     let maxHeight: CGFloat?
+    let hasRoundedShape: Bool
     let tooltipDelay: TimeInterval
     let isLightBackground: Bool
+
+    private var pillCornerRadius: CGFloat {
+        guard let h = maxHeight, h > 0 else { return 4 }
+        return hasRoundedShape ? h / 2 : h / 4
+    }
 
     private var leftClickAction: () -> Void {
         return { [weak itemManager, weak menuBarManager] in
@@ -750,9 +763,8 @@ private struct IceBarItemView: View {
                 .antialiased(true)
                 .resizable()
                 .frame(width: size.width, height: size.height)
-                .padding(.horizontal, 3)
                 .background {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: pillCornerRadius, style: hasRoundedShape ? .circular : .continuous)
                         .fill((isLightBackground ? Color.black : Color.white).opacity(isHovered ? 0.15 : 0))
                         .padding(.vertical, 3)
                 }
