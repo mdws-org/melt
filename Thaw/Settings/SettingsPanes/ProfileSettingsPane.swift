@@ -350,7 +350,7 @@ struct ProfileSettingsPane: View {
 
     private func duplicateProfile(id: UUID) {
         let profile = profileManager.profiles.first { $0.id == id }
-        let name = (profile?.name ?? String(localized: "Profile")) + String(localized: " Copy")
+        let name = (profile?.name ?? String(localized: "Profile")) + " " + String(localized: "Copy")
         do {
             try profileManager.duplicateProfile(id: id, newName: name)
         } catch {
