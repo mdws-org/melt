@@ -87,6 +87,7 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          echo "Creating export options plist..."
           export_plist="$RUNNER_TEMP/ExportOptions.plist"
           rm -f "$export_plist"
           /usr/libexec/PlistBuddy \
@@ -96,24 +97,37 @@ jobs:
             -c "Add :destination string export" \
             "$export_plist"
 
+          echo "Exporting archive..."
           xcodebuild -exportArchive \
             -archivePath build/Archive.xcarchive \
             -exportPath build/Export \
             -exportOptionsPlist "$export_plist"
 
+          echo "Signing the .app bundle..."
+          codesign --force --options runtime --deep --timestamp \
+            --sign "Developer ID Application" \
+            "build/Export/${{ env.APP_NAME }}"
+
+          echo "Verifying signature..."
+          codesign --verify --deep --verbose=2 "build/Export/${{ env.APP_NAME }}"
+          spctl --assess --type execute --verbose "build/Export/${{ env.APP_NAME }}"
+
+          echo "Creating DMG..."
           dmg_staging="$RUNNER_TEMP/dmg-staging"
           mkdir -p "$dmg_staging"
           cp -r "build/Export/${{ env.APP_NAME }}" "$dmg_staging/"
           ln -s /Applications "$dmg_staging/Applications"
+
           hdiutil create \
             -volname "Thaw" \
             -srcfolder "$dmg_staging" \
             -ov -format UDZO \
             "build/${{ env.DMG_NAME }}"
+
+          echo "Signing the DMG..."
           codesign --sign "Developer ID Application" \
             --timestamp \
             "build/${{ env.DMG_NAME }}"
-
       - name: Notarize
         run: |
           submission=$(xcrun notarytool submit "build/${{ env.DMG_NAME }}" \
