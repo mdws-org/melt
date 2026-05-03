@@ -109,13 +109,29 @@ jobs:
             -srcfolder "$dmg_staging" \
             -ov -format UDZO \
             "build/${{ env.DMG_NAME }}"
+          codesign --sign "Developer ID Application" \
+            --timestamp \
+            "build/${{ env.DMG_NAME }}"
 
       - name: Notarize
         run: |
-          xcrun notarytool submit "build/${{ env.DMG_NAME }}" \
+          submission=$(xcrun notarytool submit "build/${{ env.DMG_NAME }}" \
             --keychain-profile "notarytool-profile" \
             --keychain "$RUNNER_TEMP/buildagent.keychain" \
-            --wait
+            --wait \
+            --output-format json)
+          echo "$submission"
+
+          submission_id=$(echo "$submission" | jq -r '.id')
+          xcrun notarytool log "$submission_id" \
+            --keychain-profile "notarytool-profile" \
+            --keychain "$RUNNER_TEMP/buildagent.keychain"
+
+          status=$(echo "$submission" | jq -r '.status')
+          if [[ "$status" != "Accepted" ]]; then
+            echo "Notarization failed with status: $status"
+            exit 1
+          fi
 
           xcrun stapler staple "build/${{ env.DMG_NAME }}"
           xcrun stapler validate "build/${{ env.DMG_NAME }}"
