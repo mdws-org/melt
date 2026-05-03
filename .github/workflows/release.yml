@@ -129,7 +129,7 @@ jobs:
           retention-days: 3
 
       - name: Create GitHub Release
-        if: ${{ !inputs.dry_run || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' && !inputs.dry_run }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
