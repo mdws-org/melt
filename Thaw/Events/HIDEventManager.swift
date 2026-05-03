@@ -1490,9 +1490,18 @@ extension HIDEventManager {
         }
 
         let entries = windowBoundsLock.withLock { $0 }
-        return entries.contains { entry in
-            entry.bounds.contains(mouseLocation)
+        for entry in entries {
+            guard entry.bounds.contains(mouseLocation) else { continue }
+            // Verify window still exists — temporary items (screen recording,
+            // mic, camera indicators) can disappear without triggering a cache
+            // rebuild, leaving stale bounds in the lookup.
+            if let currentBounds = Bridging.getWindowBounds(for: entry.windowID),
+               currentBounds.contains(mouseLocation)
+            {
+                return true
+            }
         }
+        return false
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
