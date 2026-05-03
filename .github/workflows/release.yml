@@ -110,7 +110,6 @@ jobs:
 
           echo "Verifying signature..."
           codesign --verify --deep --verbose=2 "build/Export/${{ env.APP_NAME }}"
-          spctl --assess --type execute --verbose "build/Export/${{ env.APP_NAME }}"
 
           echo "Creating DMG..."
           dmg_staging="$RUNNER_TEMP/dmg-staging"
@@ -150,6 +149,9 @@ jobs:
 
           xcrun stapler staple "build/${{ env.DMG_NAME }}"
           xcrun stapler validate "build/${{ env.DMG_NAME }}"
+
+          echo: "Final verification with spctl..."
+          spctl --assess --type execute --verbose "build/Export/${{ env.APP_NAME }}"
 
       - name: Upload notarized DMG
         if: ${{ inputs.dry_run }}
