@@ -552,9 +552,16 @@ private final class MenuBarOverlayPanelContentView: NSView {
         if let overlayPanel {
             if let appState = overlayPanel.appState {
                 appState.appearanceManager.$configuration
-                    .removeDuplicates()
                     .sink { [weak self] config in
                         self?.fullConfiguration = config
+                    }
+                    .store(in: &c)
+
+                appState.appearanceManager.objectWillChange
+                    .debounce(for: .seconds(0), scheduler: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        guard let self else { return }
+                        fullConfiguration = appState.appearanceManager.configuration
                     }
                     .store(in: &c)
 
@@ -817,15 +824,17 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
         let screenOrigin = screen.frame.minX
 
+        let notchMargin = fullConfiguration.notchMargin
+
         let leadingBounds: CGRect = {
-            let notchLeftX = topLeft.maxX - screenOrigin
+            let notchLeftX = topLeft.maxX - screenOrigin - notchMargin
             let adjustedMinX = rect.minX + fullConfiguration.leftMargin
             let width = max(0, notchLeftX - adjustedMinX)
             return CGRect(x: adjustedMinX, y: rect.minY, width: width, height: rect.height)
         }()
 
         let trailingBounds: CGRect = {
-            let notchRightX = topRight.minX - screenOrigin
+            let notchRightX = topRight.minX - screenOrigin + notchMargin
             let maxX = rect.maxX - fullConfiguration.rightMargin
             let width = max(0, maxX - notchRightX)
             return CGRect(x: notchRightX, y: rect.minY, width: width, height: rect.height)

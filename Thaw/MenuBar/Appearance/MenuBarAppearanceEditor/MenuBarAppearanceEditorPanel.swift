@@ -177,7 +177,7 @@ private final class MenuBarAppearanceEditorHostingController: NSHostingControlle
 
     func updatePreferredContentSize() {
         guard let appState else {
-            preferredContentSize = NSSize(width: 500, height: 630)
+            preferredContentSize = NSSize(width: 525, height: 630)
             return
         }
         let configuration = appState.appearanceManager.configuration
@@ -193,7 +193,7 @@ private final class MenuBarAppearanceEditorHostingController: NSHostingControlle
             guard !configuration.isDynamic, configuration.current.tintKind != .noTint else { return 0 }
             return 40
         }()
-        preferredContentSize = NSSize(width: 500, height: baseHeight + shapeBonus + headingBonus + calloutBonus + tintOpacityBonus)
+        preferredContentSize = NSSize(width: 525, height: baseHeight + shapeBonus + headingBonus + calloutBonus + tintOpacityBonus)
         view.setFrameSize(preferredContentSize)
     }
 }

@@ -19,6 +19,7 @@ struct MenuBarAppearanceConfigurationV2: Hashable {
     var isInset: Bool
     var leftMargin: Double
     var rightMargin: Double
+    var notchMargin: Double
     var isDynamic: Bool
 
     var hasRoundedShape: Bool {
@@ -57,6 +58,7 @@ extension MenuBarAppearanceConfigurationV2 {
         isInset: true,
         leftMargin: 0,
         rightMargin: 0,
+        notchMargin: 0,
         isDynamic: false
     )
 }
@@ -73,6 +75,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
         case isInset
         case leftMargin
         case rightMargin
+        case notchMargin
         case isDynamic
     }
 
@@ -89,6 +92,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
             isInset: container.decodeIfPresent(Bool.self, forKey: .isInset) ?? Self.defaultConfiguration.isInset,
             leftMargin: container.decodeIfPresent(Double.self, forKey: .leftMargin) ?? Self.defaultConfiguration.leftMargin,
             rightMargin: container.decodeIfPresent(Double.self, forKey: .rightMargin) ?? Self.defaultConfiguration.rightMargin,
+            notchMargin: container.decodeIfPresent(Double.self, forKey: .notchMargin) ?? Self.defaultConfiguration.notchMargin,
             isDynamic: container.decodeIfPresent(Bool.self, forKey: .isDynamic) ?? Self.defaultConfiguration.isDynamic
         )
     }
@@ -105,6 +109,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
         try container.encode(isInset, forKey: .isInset)
         try container.encode(leftMargin, forKey: .leftMargin)
         try container.encode(rightMargin, forKey: .rightMargin)
+        try container.encode(notchMargin, forKey: .notchMargin)
         try container.encode(isDynamic, forKey: .isDynamic)
     }
 }

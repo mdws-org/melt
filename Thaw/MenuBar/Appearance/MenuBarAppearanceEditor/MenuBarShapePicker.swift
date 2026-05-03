@@ -27,7 +27,7 @@ struct MenuBarShapePicker: View {
     }
 
     private var horizontalMargins: some View {
-        HStack(spacing: 17) {
+        HStack(spacing: configuration.shapeKind == .notch ? 8 : 17) {
             IceSlider(
                 "Left margin",
                 value: $configuration.leftMargin,
@@ -36,6 +36,16 @@ struct MenuBarShapePicker: View {
                 showsValue: true,
                 unit: "px"
             )
+            if configuration.shapeKind == .notch {
+                IceSlider(
+                    "Notch margin",
+                    value: $configuration.notchMargin,
+                    in: 0 ... 15,
+                    step: 1,
+                    showsValue: true,
+                    unit: "px"
+                )
+            }
             IceSlider(
                 "Right margin",
                 value: $configuration.rightMargin,
@@ -68,7 +78,8 @@ struct MenuBarShapePicker: View {
                     set: { newValue in DispatchQueue.main.async { configuration.fullShapeInfo = newValue } }
                 ),
                 leftMargin: $configuration.leftMargin,
-                rightMargin: $configuration.rightMargin
+                rightMargin: $configuration.rightMargin,
+                notchMargin: .constant(0)
             ).equatable()
         case .split:
             MenuBarSplitShapePicker(
@@ -77,7 +88,8 @@ struct MenuBarShapePicker: View {
                     set: { newValue in DispatchQueue.main.async { configuration.splitShapeInfo = newValue } }
                 ),
                 leftMargin: $configuration.leftMargin,
-                rightMargin: $configuration.rightMargin
+                rightMargin: $configuration.rightMargin,
+                notchMargin: .constant(0)
             ).equatable()
         case .notch:
             MenuBarSplitShapePicker(
@@ -96,7 +108,8 @@ struct MenuBarShapePicker: View {
                     }
                 ),
                 leftMargin: $configuration.leftMargin,
-                rightMargin: $configuration.rightMargin
+                rightMargin: $configuration.rightMargin,
+                notchMargin: $configuration.notchMargin
             ).equatable()
         }
     }
@@ -107,6 +120,8 @@ private struct MenuBarFullShapePicker: View, @preconcurrency Equatable {
     @Binding var info: MenuBarFullShapeInfo
     @Binding var leftMargin: Double
     @Binding var rightMargin: Double
+    @Binding var notchMargin: Double
+    var notchEdge: HorizontalEdge = .trailing
 
     var body: some View {
         VStack {
@@ -128,6 +143,9 @@ private struct MenuBarFullShapePicker: View, @preconcurrency Equatable {
 
     private var exampleStack: some View {
         HStack(spacing: 0) {
+            if notchEdge == .leading, let notchWidth = notchMargin > 0 ? notchMargin : nil {
+                Color.clear.frame(width: notchWidth)
+            }
             if leftMargin > 0 {
                 Color.clear.frame(width: leftMargin)
             }
@@ -136,6 +154,9 @@ private struct MenuBarFullShapePicker: View, @preconcurrency Equatable {
             trailingEndCapExample
             if rightMargin > 0 {
                 Color.clear.frame(width: rightMargin)
+            }
+            if notchEdge == .trailing, let notchWidth = notchMargin > 0 ? notchMargin : nil {
+                Color.clear.frame(width: notchWidth)
             }
         }
         .frame(height: 24)
@@ -215,7 +236,9 @@ private struct MenuBarFullShapePicker: View, @preconcurrency Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.info == rhs.info &&
             lhs.leftMargin == rhs.leftMargin &&
-            lhs.rightMargin == rhs.rightMargin
+            lhs.rightMargin == rhs.rightMargin &&
+            lhs.notchMargin == rhs.notchMargin &&
+            lhs.notchEdge == rhs.notchEdge
     }
 }
 
@@ -223,19 +246,24 @@ private struct MenuBarSplitShapePicker: View, @preconcurrency Equatable {
     @Binding var info: MenuBarSplitShapeInfo
     @Binding var leftMargin: Double
     @Binding var rightMargin: Double
+    @Binding var notchMargin: Double
 
     var body: some View {
         HStack {
             MenuBarFullShapePicker(
                 info: $info.leading,
                 leftMargin: $leftMargin,
-                rightMargin: .constant(0)
+                rightMargin: .constant(0),
+                notchMargin: .constant(notchMargin > 0 ? notchMargin : 0),
+                notchEdge: .trailing
             ).equatable()
             Divider()
             MenuBarFullShapePicker(
                 info: $info.trailing,
                 leftMargin: .constant(0),
-                rightMargin: $rightMargin
+                rightMargin: $rightMargin,
+                notchMargin: .constant(notchMargin > 0 ? notchMargin : 0),
+                notchEdge: .leading
             ).equatable()
         }
     }
@@ -243,7 +271,8 @@ private struct MenuBarSplitShapePicker: View, @preconcurrency Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.info == rhs.info &&
             lhs.leftMargin == rhs.leftMargin &&
-            lhs.rightMargin == rhs.rightMargin
+            lhs.rightMargin == rhs.rightMargin &&
+            lhs.notchMargin == rhs.notchMargin
     }
 }
 
