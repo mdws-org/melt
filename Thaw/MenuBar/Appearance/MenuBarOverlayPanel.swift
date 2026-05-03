@@ -776,6 +776,91 @@ private final class MenuBarOverlayPanelContentView: NSView {
         return path
     }
 
+    /// Returns a path for the ``MenuBarShapeKind/notch`` shape kind.
+    /// Behaves like full on non-notched displays, splits at the notch
+    /// on notched displays.
+    private func pathForNotchShape(
+        in rect: CGRect,
+        info: MenuBarNotchShapeInfo,
+        isInset: Bool,
+        screen: NSScreen
+    ) -> NSBezierPath {
+        guard let appearanceManager = overlayPanel?.appState?.appearanceManager
+        else {
+            return NSBezierPath()
+        }
+
+        // Non-notched: behaves like full shape using the outer end caps
+        guard screen.hasNotch,
+              let topLeft = screen.auxiliaryTopLeftArea,
+              let topRight = screen.auxiliaryTopRightArea
+        else {
+            let fullInfo = MenuBarFullShapeInfo(
+                leadingEndCap: info.leading.leadingEndCap,
+                trailingEndCap: info.trailing.trailingEndCap
+            )
+            return pathForFullShape(in: rect, info: fullInfo, isInset: isInset, screen: screen)
+        }
+
+        var rect = rect
+        let shouldInset = isInset && screen.hasNotch
+        if shouldInset {
+            rect = rect.insetBy(dx: 0, dy: appearanceManager.menuBarInsetAmount)
+            if info.leading.leadingEndCap == .round {
+                rect.origin.x += appearanceManager.menuBarInsetAmount
+                rect.size.width -= appearanceManager.menuBarInsetAmount
+            }
+            if info.trailing.trailingEndCap == .round {
+                rect.size.width -= appearanceManager.menuBarInsetAmount
+            }
+        }
+
+        let screenOrigin = screen.frame.minX
+
+        let leadingBounds: CGRect = {
+            let notchLeftX = topLeft.maxX - screenOrigin
+            let adjustedMinX = rect.minX + fullConfiguration.leftMargin
+            let width = max(0, notchLeftX - adjustedMinX)
+            return CGRect(x: adjustedMinX, y: rect.minY, width: width, height: rect.height)
+        }()
+
+        let trailingBounds: CGRect = {
+            let notchRightX = topRight.minX - screenOrigin
+            let maxX = rect.maxX - fullConfiguration.rightMargin
+            let width = max(0, maxX - notchRightX)
+            return CGRect(x: notchRightX, y: rect.minY, width: width, height: rect.height)
+        }()
+
+        if leadingBounds.width <= 0 || trailingBounds.width <= 0
+            || leadingBounds.intersects(trailingBounds)
+        {
+            let fullInfo = MenuBarFullShapeInfo(
+                leadingEndCap: info.leading.leadingEndCap,
+                trailingEndCap: info.trailing.trailingEndCap
+            )
+            return pathForFullShape(in: rect, info: fullInfo, isInset: isInset, screen: screen)
+        }
+
+        let leadingPath = shapePath(
+            in: leadingBounds,
+            leadingEndCap: info.leading.leadingEndCap,
+            trailingEndCap: info.leading.trailingEndCap,
+            screen: screen
+        )
+
+        let trailingPath = shapePath(
+            in: trailingBounds,
+            leadingEndCap: info.trailing.leadingEndCap,
+            trailingEndCap: info.trailing.trailingEndCap,
+            screen: screen
+        )
+
+        let path = NSBezierPath()
+        path.append(leadingPath)
+        path.append(trailingPath)
+        return path
+    }
+
     /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
     private func pathForFullShape(
         in rect: CGRect,
@@ -988,6 +1073,13 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     isInset: fullConfiguration.isInset,
                     screen: overlayPanel.owningScreen
                 )
+            case .notch:
+                pathForNotchShape(
+                    in: drawableBounds,
+                    info: fullConfiguration.notchShapeInfo,
+                    isInset: fullConfiguration.isInset,
+                    screen: overlayPanel.owningScreen
+                )
             }
 
         var hasBorder = false
@@ -1022,7 +1114,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 NSColor(cgColor: configuration.borderColor)?.setFill()
                 NSBezierPath(rect: borderBounds).fill()
             }
-        case .full, .split:
+        case .full, .split, .notch:
             if configuration.hasShadow {
                 context.saveGraphicsState()
                 defer {

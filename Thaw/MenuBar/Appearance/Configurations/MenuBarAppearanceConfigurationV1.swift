@@ -28,6 +28,7 @@ struct MenuBarAppearanceConfigurationV1: Hashable {
         case .noShape: false
         case .full: fullShapeInfo.hasRoundedShape
         case .split: splitShapeInfo.hasRoundedShape
+        case .notch: false
         }
     }
 

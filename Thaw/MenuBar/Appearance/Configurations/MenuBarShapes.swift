@@ -17,7 +17,7 @@ enum MenuBarEndCap: Int, CaseIterable, Codable, Hashable {
 }
 
 /// A type that specifies a custom shape kind for the menu bar.
-enum MenuBarShapeKind: Int, CaseIterable, Codable, Identifiable {
+enum MenuBarShapeKind: Int, CaseIterable, Identifiable {
     /// The menu bar does not use a custom shape.
     case noShape = 0
     /// A custom shape that takes up the full menu bar.
@@ -25,6 +25,9 @@ enum MenuBarShapeKind: Int, CaseIterable, Codable, Identifiable {
     /// A custom shape that splits the menu bar between its leading
     /// and trailing sides.
     case split = 2
+    /// A shape that behaves like full on non-notched displays,
+    /// and splits at the notch on notched displays.
+    case notch = 3
 
     var id: Int {
         rawValue
@@ -36,6 +39,25 @@ enum MenuBarShapeKind: Int, CaseIterable, Codable, Identifiable {
         case .noShape: "None"
         case .full: "Full"
         case .split: "Split"
+        case .notch: "Notch"
+        }
+    }
+}
+
+extension MenuBarShapeKind: Codable {
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(Int.self)
+        if rawValue == 3 {
+            self = .notch
+        } else {
+            guard let value = MenuBarShapeKind(rawValue: rawValue) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Invalid MenuBarShapeKind: \(rawValue)"
+                )
+            }
+            self = value
         }
     }
 }
@@ -74,4 +96,27 @@ extension MenuBarSplitShapeInfo {
 
 extension MenuBarSplitShapeInfo {
     static let defaultValue = MenuBarSplitShapeInfo(leading: .defaultValue, trailing: .defaultValue)
+}
+
+/// Information for the ``MenuBarShapeKind/notch`` menu bar shape kind.
+///
+/// Uses ``MenuBarSplitShapeInfo`` internally — each side has its own
+/// end-cap configuration. On non-notched displays the shape falls back
+/// to full-width, using the leading end-cap for the left corner and the
+/// trailing end-cap for the right corner.
+struct MenuBarNotchShapeInfo: Codable, Hashable {
+    /// The leading shape info.
+    var leading: MenuBarFullShapeInfo
+    /// The trailing shape info.
+    var trailing: MenuBarFullShapeInfo
+}
+
+extension MenuBarNotchShapeInfo {
+    var hasRoundedShape: Bool {
+        leading.hasRoundedShape || trailing.hasRoundedShape
+    }
+}
+
+extension MenuBarNotchShapeInfo {
+    static let defaultValue = MenuBarNotchShapeInfo(leading: .defaultValue, trailing: .defaultValue)
 }

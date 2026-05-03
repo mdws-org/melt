@@ -46,17 +46,19 @@ final class MenuBarShapeKindTests: XCTestCase {
         XCTAssertEqual(MenuBarShapeKind.noShape.rawValue, 0)
         XCTAssertEqual(MenuBarShapeKind.full.rawValue, 1)
         XCTAssertEqual(MenuBarShapeKind.split.rawValue, 2)
+        XCTAssertEqual(MenuBarShapeKind.notch.rawValue, 3)
     }
 
     func testInitFromRawValue() {
         XCTAssertEqual(MenuBarShapeKind(rawValue: 0), .noShape)
         XCTAssertEqual(MenuBarShapeKind(rawValue: 1), .full)
         XCTAssertEqual(MenuBarShapeKind(rawValue: 2), .split)
-        XCTAssertNil(MenuBarShapeKind(rawValue: 3))
+        XCTAssertEqual(MenuBarShapeKind(rawValue: 3), .notch)
+        XCTAssertNil(MenuBarShapeKind(rawValue: 4))
     }
 
     func testAllCasesCount() {
-        XCTAssertEqual(MenuBarShapeKind.allCases.count, 3)
+        XCTAssertEqual(MenuBarShapeKind.allCases.count, 4)
     }
 
     func testIdentifiableId() {
@@ -172,5 +174,72 @@ final class MenuBarSplitShapeInfoTests: XCTestCase {
         let decoded = try decoder.decode(MenuBarSplitShapeInfo.self, from: data)
 
         XCTAssertEqual(decoded, original)
+    }
+}
+
+// MARK: - MenuBarNotchShapeInfo Tests
+
+final class MenuBarNotchShapeInfoTests: XCTestCase {
+    func testDefaultValue() {
+        let defaultInfo = MenuBarNotchShapeInfo.defaultValue
+        XCTAssertEqual(defaultInfo.leading, MenuBarFullShapeInfo.defaultValue)
+        XCTAssertEqual(defaultInfo.trailing, MenuBarFullShapeInfo.defaultValue)
+    }
+
+    func testHasRoundedShapeLeadingRounded() {
+        let info = MenuBarNotchShapeInfo(
+            leading: MenuBarFullShapeInfo(leadingEndCap: .round, trailingEndCap: .square),
+            trailing: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .square)
+        )
+        XCTAssertTrue(info.hasRoundedShape)
+    }
+
+    func testHasRoundedShapeTrailingRounded() {
+        let info = MenuBarNotchShapeInfo(
+            leading: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .square),
+            trailing: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .round)
+        )
+        XCTAssertTrue(info.hasRoundedShape)
+    }
+
+    func testHasRoundedShapeNoneRounded() {
+        let info = MenuBarNotchShapeInfo(
+            leading: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .square),
+            trailing: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .square)
+        )
+        XCTAssertFalse(info.hasRoundedShape)
+    }
+
+    func testCodable() throws {
+        let original = MenuBarNotchShapeInfo.defaultValue
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let data = try encoder.encode(original)
+        let decoded = try decoder.decode(MenuBarNotchShapeInfo.self, from: data)
+
+        XCTAssertEqual(decoded, original)
+    }
+
+    func testHashable() {
+        let info1 = MenuBarNotchShapeInfo.defaultValue
+        let info2 = MenuBarNotchShapeInfo.defaultValue
+        let info3 = MenuBarNotchShapeInfo(
+            leading: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .square),
+            trailing: MenuBarFullShapeInfo(leadingEndCap: .square, trailingEndCap: .square)
+        )
+
+        XCTAssertEqual(info1, info2)
+        XCTAssertNotEqual(info1, info3)
+    }
+
+    func testShapeKindCodableNotch() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let data = try encoder.encode(MenuBarShapeKind.notch)
+        let decoded = try decoder.decode(MenuBarShapeKind.self, from: data)
+        XCTAssertEqual(decoded, .notch)
     }
 }

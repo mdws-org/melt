@@ -15,6 +15,7 @@ struct MenuBarAppearanceConfigurationV2: Hashable {
     var shapeKind: MenuBarShapeKind
     var fullShapeInfo: MenuBarFullShapeInfo
     var splitShapeInfo: MenuBarSplitShapeInfo
+    var notchShapeInfo: MenuBarNotchShapeInfo
     var isInset: Bool
     var leftMargin: Double
     var rightMargin: Double
@@ -25,6 +26,7 @@ struct MenuBarAppearanceConfigurationV2: Hashable {
         case .noShape: false
         case .full: fullShapeInfo.hasRoundedShape
         case .split: splitShapeInfo.hasRoundedShape
+        case .notch: notchShapeInfo.hasRoundedShape
         }
     }
 
@@ -51,6 +53,7 @@ extension MenuBarAppearanceConfigurationV2 {
         shapeKind: .noShape,
         fullShapeInfo: .defaultValue,
         splitShapeInfo: .defaultValue,
+        notchShapeInfo: .defaultValue,
         isInset: true,
         leftMargin: 0,
         rightMargin: 0,
@@ -66,6 +69,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
         case shapeKind
         case fullShapeInfo
         case splitShapeInfo
+        case notchShapeInfo
         case isInset
         case leftMargin
         case rightMargin
@@ -81,6 +85,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
             shapeKind: container.decodeIfPresent(MenuBarShapeKind.self, forKey: .shapeKind) ?? Self.defaultConfiguration.shapeKind,
             fullShapeInfo: container.decodeIfPresent(MenuBarFullShapeInfo.self, forKey: .fullShapeInfo) ?? Self.defaultConfiguration.fullShapeInfo,
             splitShapeInfo: container.decodeIfPresent(MenuBarSplitShapeInfo.self, forKey: .splitShapeInfo) ?? Self.defaultConfiguration.splitShapeInfo,
+            notchShapeInfo: container.decodeIfPresent(MenuBarNotchShapeInfo.self, forKey: .notchShapeInfo) ?? Self.defaultConfiguration.notchShapeInfo,
             isInset: container.decodeIfPresent(Bool.self, forKey: .isInset) ?? Self.defaultConfiguration.isInset,
             leftMargin: container.decodeIfPresent(Double.self, forKey: .leftMargin) ?? Self.defaultConfiguration.leftMargin,
             rightMargin: container.decodeIfPresent(Double.self, forKey: .rightMargin) ?? Self.defaultConfiguration.rightMargin,
@@ -96,6 +101,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
         try container.encode(shapeKind, forKey: .shapeKind)
         try container.encode(fullShapeInfo, forKey: .fullShapeInfo)
         try container.encode(splitShapeInfo, forKey: .splitShapeInfo)
+        try container.encode(notchShapeInfo, forKey: .notchShapeInfo)
         try container.encode(isInset, forKey: .isInset)
         try container.encode(leftMargin, forKey: .leftMargin)
         try container.encode(rightMargin, forKey: .rightMargin)

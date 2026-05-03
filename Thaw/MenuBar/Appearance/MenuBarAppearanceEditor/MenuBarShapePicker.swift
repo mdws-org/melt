@@ -63,13 +63,38 @@ struct MenuBarShapePicker: View {
             EmptyView()
         case .full:
             MenuBarFullShapePicker(
-                info: $configuration.fullShapeInfo,
+                info: Binding(
+                    get: { configuration.fullShapeInfo },
+                    set: { newValue in DispatchQueue.main.async { configuration.fullShapeInfo = newValue } }
+                ),
                 leftMargin: $configuration.leftMargin,
                 rightMargin: $configuration.rightMargin
             ).equatable()
         case .split:
             MenuBarSplitShapePicker(
-                info: $configuration.splitShapeInfo,
+                info: Binding(
+                    get: { configuration.splitShapeInfo },
+                    set: { newValue in DispatchQueue.main.async { configuration.splitShapeInfo = newValue } }
+                ),
+                leftMargin: $configuration.leftMargin,
+                rightMargin: $configuration.rightMargin
+            ).equatable()
+        case .notch:
+            MenuBarSplitShapePicker(
+                info: Binding(
+                    get: {
+                        MenuBarSplitShapeInfo(
+                            leading: configuration.notchShapeInfo.leading,
+                            trailing: configuration.notchShapeInfo.trailing
+                        )
+                    },
+                    set: { newValue in
+                        DispatchQueue.main.async {
+                            configuration.notchShapeInfo.leading = newValue.leading
+                            configuration.notchShapeInfo.trailing = newValue.trailing
+                        }
+                    }
+                ),
                 leftMargin: $configuration.leftMargin,
                 rightMargin: $configuration.rightMargin
             ).equatable()
