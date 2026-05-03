@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "*.*.*"
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to publish (for example, v1.2.3)
+        description: Release tag to publish (for example, 1.2.3)
         required: true
         type: string
       dry_run:
@@ -70,6 +70,23 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --keychain "$keychain"
 
+      - name: Create Entitlements File
+        run: |
+          cat <<EOF > Thaw.entitlements
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>com.apple.security.cs.allow-jit</key>
+              <true/>
+              <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+              <true/>
+              <key>com.apple.security.cs.disable-library-validation</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
       - name: Build
         run: |
           xcodebuild archive \
@@ -97,19 +114,35 @@ jobs:
             -c "Add :destination string export" \
             "$export_plist"
 
+          APP_PATH="build/Export/${{ env.APP_NAME }}"
+
           echo "Exporting archive..."
           xcodebuild -exportArchive \
             -archivePath build/Archive.xcarchive \
             -exportPath build/Export \
             -exportOptionsPlist "$export_plist"
 
-          echo "Signing the .app bundle..."
-          codesign --force --options runtime --deep --timestamp \
+          echo "Signing XPC Service..."
+          codesign --force --options runtime --timestamp \
             --sign "Developer ID Application" \
-            "build/Export/${{ env.APP_NAME }}"
+            --team-id "$APPLE_TEAM_ID" \
+            "$APP_PATH/Contents/XPCServices/MenuBarItemService.xpc"
+
+          echo "Signing Sparkle..."
+          find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -type f -perm +111 \
+            -exec codesign --force --options runtime --timestamp \
+            --sign "Developer ID Application" \
+            --team-id "$APPLE_TEAM_ID" {} \;
+
+          echo "Signing Main App Bundle with Runtime Entitlements..."
+          codesign --force --options runtime --timestamp \
+            --entitlements Thaw.entitlements \
+            --sign "Developer ID Application" \
+            --team-id "$APPLE_TEAM_ID" \
+            "$APP_PATH"
 
           echo "Verifying signature..."
-          codesign --verify --deep --verbose=2 "build/Export/${{ env.APP_NAME }}"
+          codesign -vvv --deep --strict "$APP_PATH"
 
           echo "Creating DMG..."
           dmg_staging="$RUNNER_TEMP/dmg-staging"
@@ -126,6 +159,7 @@ jobs:
           echo "Signing the DMG..."
           codesign --sign "Developer ID Application" \
             --timestamp \
+            --team-id "$APPLE_TEAM_ID" \
             "build/${{ env.DMG_NAME }}"
       - name: Notarize
         run: |
@@ -150,7 +184,7 @@ jobs:
           xcrun stapler staple "build/${{ env.DMG_NAME }}"
           xcrun stapler validate "build/${{ env.DMG_NAME }}"
 
-          echo: "Final verification with spctl..."
+          echo "Final verification with spctl..."
           spctl --assess --type execute --verbose "build/Export/${{ env.APP_NAME }}"
 
       - name: Upload notarized DMG
