@@ -186,6 +186,16 @@ private struct UnlabeledBackgroundEditor: View {
         if configuration.backgroundKind != .glass {
             backgroundShadowToggle
         }
+        if configuration.backgroundKind == .glass {
+            LabeledContent("Glass") {
+                IcePicker("Glass Style", selection: $configuration.backgroundGlassStyle) {
+                    ForEach(MenuBarGlassStyle.allCases, id: \.self) { style in
+                        Text(style.localized).tag(style)
+                    }
+                }
+                .labelsHidden()
+            }
+        }
     }
 
     var body: some View {
@@ -391,7 +401,16 @@ private struct UnlabeledShapeEditor: View {
 
     @ViewBuilder
     private var tintOpacity: some View {
-        if configuration.tintKind != .noTint, configuration.tintKind != .glass {
+        if configuration.tintKind == .glass {
+            LabeledContent("Glass") {
+                IcePicker("Glass Style", selection: $configuration.tintGlassStyle) {
+                    ForEach(MenuBarGlassStyle.allCases, id: \.self) { style in
+                        Text(style.localized).tag(style)
+                    }
+                }
+                .labelsHidden()
+            }
+        } else if configuration.tintKind != .noTint {
             LabeledContent("Opacity") {
                 IceSlider(
                     value: $configuration.tintOpacity,

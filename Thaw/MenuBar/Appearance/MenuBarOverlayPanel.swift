@@ -1108,6 +1108,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 ])
             }
             backgroundGlassView.isHidden = false
+            backgroundGlassView.style = configuration.backgroundGlassStyle.nsGlassStyle
         } else if backgroundGlassView.superview != nil {
             backgroundGlassView.isHidden = true
         }
@@ -1128,6 +1129,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
             }
             tintGlassMaskLayer.path = shapeCGPath
             tintGlassView.isHidden = false
+            tintGlassView.style = configuration.tintGlassStyle.nsGlassStyle
         } else if tintGlassView.superview != nil {
             tintGlassView.isHidden = true
         }

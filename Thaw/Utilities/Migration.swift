@@ -305,7 +305,9 @@ extension MigrationManager {
                     backgroundHasShadow: MenuBarAppearancePartialConfiguration.defaultConfiguration.backgroundHasShadow,
                     backgroundHasBorder: MenuBarAppearancePartialConfiguration.defaultConfiguration.backgroundHasBorder,
                     backgroundBorderColor: MenuBarAppearancePartialConfiguration.defaultConfiguration.backgroundBorderColor,
-                    backgroundBorderWidth: MenuBarAppearancePartialConfiguration.defaultConfiguration.backgroundBorderWidth
+                    backgroundBorderWidth: MenuBarAppearancePartialConfiguration.defaultConfiguration.backgroundBorderWidth,
+                    backgroundGlassStyle: MenuBarAppearancePartialConfiguration.defaultConfiguration.backgroundGlassStyle,
+                    tintGlassStyle: MenuBarAppearancePartialConfiguration.defaultConfiguration.tintGlassStyle
                 )
                 configuration.lightModeConfiguration = partialConfiguration
                 configuration.darkModeConfiguration = partialConfiguration

@@ -133,6 +133,8 @@ struct MenuBarAppearancePartialConfiguration: Hashable {
     var backgroundHasBorder: Bool
     var backgroundBorderColor: CGColor
     var backgroundBorderWidth: Double
+    var backgroundGlassStyle: MenuBarGlassStyle
+    var tintGlassStyle: MenuBarGlassStyle
 }
 
 // MARK: Default Partial Configuration
@@ -154,7 +156,9 @@ extension MenuBarAppearancePartialConfiguration {
         backgroundHasShadow: false,
         backgroundHasBorder: false,
         backgroundBorderColor: .black,
-        backgroundBorderWidth: 1
+        backgroundBorderWidth: 1,
+        backgroundGlassStyle: .regular,
+        tintGlassStyle: .regular
     )
 }
 
@@ -181,6 +185,8 @@ extension MenuBarAppearancePartialConfiguration: Codable {
         case backgroundHasBorder
         case backgroundBorderColor
         case backgroundBorderWidth
+        case backgroundGlassStyle
+        case tintGlassStyle
     }
 
     init(from decoder: Decoder) throws {
@@ -201,7 +207,9 @@ extension MenuBarAppearancePartialConfiguration: Codable {
             backgroundHasShadow: container.decodeIfPresent(Bool.self, forKey: .backgroundHasShadow) ?? Self.defaultConfiguration.backgroundHasShadow,
             backgroundHasBorder: container.decodeIfPresent(Bool.self, forKey: .backgroundHasBorder) ?? Self.defaultConfiguration.backgroundHasBorder,
             backgroundBorderColor: container.decodeIfPresent(IceColor.self, forKey: .backgroundBorderColor)?.cgColor ?? Self.defaultConfiguration.backgroundBorderColor,
-            backgroundBorderWidth: container.decodeIfPresent(Double.self, forKey: .backgroundBorderWidth) ?? Self.defaultConfiguration.backgroundBorderWidth
+            backgroundBorderWidth: container.decodeIfPresent(Double.self, forKey: .backgroundBorderWidth) ?? Self.defaultConfiguration.backgroundBorderWidth,
+            backgroundGlassStyle: container.decodeIfPresent(MenuBarGlassStyle.self, forKey: .backgroundGlassStyle) ?? Self.defaultConfiguration.backgroundGlassStyle,
+            tintGlassStyle: container.decodeIfPresent(MenuBarGlassStyle.self, forKey: .tintGlassStyle) ?? Self.defaultConfiguration.tintGlassStyle
         )
     }
 
@@ -223,5 +231,7 @@ extension MenuBarAppearancePartialConfiguration: Codable {
         try container.encode(backgroundHasBorder, forKey: .backgroundHasBorder)
         try container.encode(IceColor(cgColor: backgroundBorderColor), forKey: .backgroundBorderColor)
         try container.encode(backgroundBorderWidth, forKey: .backgroundBorderWidth)
+        try container.encode(backgroundGlassStyle, forKey: .backgroundGlassStyle)
+        try container.encode(tintGlassStyle, forKey: .tintGlassStyle)
     }
 }

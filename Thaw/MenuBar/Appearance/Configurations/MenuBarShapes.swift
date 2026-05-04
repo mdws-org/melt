@@ -147,3 +147,25 @@ extension MenuBarBackgroundKind {
 extension MenuBarBackgroundKind {
     static let `default` = MenuBarBackgroundKind.none
 }
+
+/// A type that specifies which glass style to use for glass backgrounds and tints.
+enum MenuBarGlassStyle: Int, CaseIterable, Codable, Hashable {
+    /// Standard glass effect.
+    case regular = 0
+    /// Clear glass effect.
+    case clear = 1
+
+    var nsGlassStyle: NSGlassEffectView.Style {
+        switch self {
+        case .regular: .regular
+        case .clear: .clear
+        }
+    }
+
+    var localized: LocalizedStringKey {
+        switch self {
+        case .regular: "Regular"
+        case .clear: "Clear"
+        }
+    }
+}
