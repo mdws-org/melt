@@ -354,12 +354,10 @@ private struct UnlabeledShapeEditor: View {
                 tintOpacity
                 shadowToggle
             }
-            if configuration.tintKind != .glass {
-                IceSection {
-                    borderToggle
-                    borderColor
-                    borderWidth
-                }
+            IceSection {
+                borderToggle
+                borderColor
+                borderWidth
             }
         }
     }
@@ -424,18 +422,12 @@ private struct UnlabeledShapeEditor: View {
         }
     }
 
-    @ViewBuilder
     private var shadowToggle: some View {
-        if configuration.tintKind != .glass {
-            Toggle("Shadow", isOn: $configuration.hasShadow)
-        }
+        Toggle("Shadow", isOn: $configuration.hasShadow)
     }
 
-    @ViewBuilder
     private var borderToggle: some View {
-        if configuration.tintKind != .glass {
-            Toggle("Border", isOn: $configuration.hasBorder)
-        }
+        Toggle("Border", isOn: $configuration.hasBorder)
     }
 
     @ViewBuilder

@@ -524,6 +524,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
         view.wantsLayer = true
         let content = NSView()
         content.translatesAutoresizingMaskIntoConstraints = false
+        content.wantsLayer = true
         view.contentView = content
         NSLayoutConstraint.activate([
             content.topAnchor.constraint(equalTo: view.topAnchor),
@@ -537,6 +538,18 @@ private final class MenuBarOverlayPanelContentView: NSView {
     private lazy var tintGlassMaskLayer: CAShapeLayer = {
         let layer = CAShapeLayer()
         layer.fillRule = .evenOdd
+        return layer
+    }()
+
+    private lazy var tintGlassContentMaskLayer: CAShapeLayer = {
+        let layer = CAShapeLayer()
+        layer.fillRule = .evenOdd
+        return layer
+    }()
+
+    private lazy var tintGlassBorderLayer: CAShapeLayer = {
+        let layer = CAShapeLayer()
+        layer.fillColor = nil
         return layer
     }()
 
@@ -1144,12 +1157,26 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     tintGlassView.bottomAnchor.constraint(equalTo: bottomAnchor),
                 ])
                 tintGlassView.layer?.mask = tintGlassMaskLayer
+                tintGlassView.contentView?.layer?.mask = tintGlassContentMaskLayer
+                tintGlassView.contentView?.layer?.addSublayer(tintGlassBorderLayer)
             }
             tintGlassMaskLayer.path = shapeCGPath
-            tintGlassView.isHidden = false
+            tintGlassContentMaskLayer.path = shapeCGPath
             tintGlassView.style = configuration.tintGlassStyle.nsGlassStyle
+
+            if configuration.hasBorder {
+                tintGlassBorderLayer.path = shapeCGPath
+                tintGlassBorderLayer.strokeColor = configuration.borderColor
+                tintGlassBorderLayer.lineWidth = configuration.borderWidth * 2
+                tintGlassBorderLayer.isHidden = false
+            } else {
+                tintGlassBorderLayer.isHidden = true
+            }
+
+            tintGlassView.isHidden = false
         } else if tintGlassView.superview != nil {
             tintGlassView.isHidden = true
+            tintGlassBorderLayer.isHidden = true
         }
     }
 
@@ -1261,7 +1288,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
             // No shape tint/shadow/border — background only
             break
         case .full, .split, .notch:
-            if configuration.hasShadow, configuration.tintKind != .glass {
+            if configuration.hasShadow {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()
