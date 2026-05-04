@@ -1078,26 +1078,57 @@ private final class MenuBarOverlayPanelContentView: NSView {
         }
     }
 
+    private var isBackgroundGlassActive = false
+
     /// Adds or removes the glass container on the panel based on background kind.
     private func updateBackgroundGlass() {
         guard let panel = window as? MenuBarOverlayPanel else { return }
         if configuration.backgroundKind == .glass {
-            guard !(panel.contentView is NSGlassEffectView) else { return }
-            let realContent = panel.contentView!
+            if isBackgroundGlassActive {
+                if let glassView = panel.contentView?.subviews
+                    .compactMap({ $0 as? NSGlassEffectView }).first
+                {
+                    glassView.style = configuration.backgroundGlassStyle.nsGlassStyle
+                }
+                return
+            }
+            guard let realContent = panel.contentView else { return }
+            isBackgroundGlassActive = true
+
+            let container = NSView()
+            container.wantsLayer = true
+
             let glassView = NSGlassEffectView()
             glassView.style = configuration.backgroundGlassStyle.nsGlassStyle
             glassView.cornerRadius = 0
-            glassView.contentView = realContent
+            glassView.translatesAutoresizingMaskIntoConstraints = false
+
+            realContent.removeFromSuperview()
             realContent.translatesAutoresizingMaskIntoConstraints = false
-            panel.contentView = glassView
+
+            container.addSubview(glassView, positioned: .below, relativeTo: nil)
+            container.addSubview(realContent, positioned: .above, relativeTo: nil)
+            panel.contentView = container
+
             NSLayoutConstraint.activate([
-                realContent.topAnchor.constraint(equalTo: glassView.topAnchor),
-                realContent.leadingAnchor.constraint(equalTo: glassView.leadingAnchor),
-                realContent.trailingAnchor.constraint(equalTo: glassView.trailingAnchor),
-                realContent.bottomAnchor.constraint(equalTo: glassView.bottomAnchor),
+                glassView.topAnchor.constraint(equalTo: container.topAnchor),
+                glassView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                glassView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                glassView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -5),
+
+                realContent.topAnchor.constraint(equalTo: container.topAnchor),
+                realContent.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                realContent.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                realContent.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             ])
-        } else if let glassView = panel.contentView as? NSGlassEffectView {
-            panel.contentView = glassView.contentView
+        } else if isBackgroundGlassActive {
+            isBackgroundGlassActive = false
+            guard let container = panel.contentView,
+                  let realContent = container.subviews
+                  .compactMap({ $0 as? MenuBarOverlayPanelContentView }).first
+            else { return }
+            realContent.removeFromSuperview()
+            panel.contentView = realContent
         }
     }
 
