@@ -108,7 +108,7 @@ final class MenuBarOverlayPanel: NSPanel, @unchecked Sendable {
     /// we can reliably detect if Mission Control is active.
     private lazy var missionControlProbeWindow: NSPanel = {
         let window = NSPanel(
-            contentRect: CGRect(x: owningScreen.frame.minX, y: owningScreen.frame.minY, width: 1, height: 1),
+            contentRect: CGRect(x: owningScreen.frame.midX, y: owningScreen.frame.midY, width: 1, height: 1),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -125,13 +125,17 @@ final class MenuBarOverlayPanel: NSPanel, @unchecked Sendable {
         // Specifically NOT .stationary or .transient to allow movement.
         // .ignoresCycle and .fullScreenAuxiliary help hide the 'Thaw' label.
         window.collectionBehavior = [.ignoresCycle, .fullScreenAuxiliary, .moveToActiveSpace]
-        // High level often bypasses labeling in Mission Control.
-        window.level = NSWindow.Level(Int(CGWindowLevelForKey(.maximumWindow) - 1))
+        // Low enough for Mission Control to arrange (both axes move).
+        // Positioned at screen center so MC grid displaces it in both x and y.
+        window.level = .floating
         return window
     }()
 
     /// The origin of the probe window when it is at rest (not in Mission Control).
     private var probeAtRestOrigin: CGPoint?
+
+    /// The time when the probe window first became displaced.
+    private var missionControlDisplacedSince: Date?
 
     /// Creates an overlay panel with the given app state and owning screen.
     init(appState: AppState, owningScreen: NSScreen) {
@@ -195,11 +199,22 @@ final class MenuBarOverlayPanel: NSPanel, @unchecked Sendable {
 
                     guard let atRest = self.probeAtRestOrigin else { return }
 
-                    let isActive = abs(actualOrigin.x - atRest.x) > 1.0 ||
+                    let isActive = abs(actualOrigin.x - atRest.x) > 1.0 &&
                         abs(actualOrigin.y - atRest.y) > 1.0
 
-                    if isActive != self.isMissionControlActive {
-                        self.isMissionControlActive = isActive
+                    let now = Date()
+
+                    if isActive {
+                        if let displacedSince = self.missionControlDisplacedSince {
+                            if now.timeIntervalSince(displacedSince) > 0.1 {
+                                self.isMissionControlActive = true
+                            }
+                        } else {
+                            self.missionControlDisplacedSince = now
+                        }
+                    } else {
+                        self.missionControlDisplacedSince = nil
+                        self.isMissionControlActive = false
                     }
                 }
             }
