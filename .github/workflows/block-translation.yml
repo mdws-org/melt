@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Close PR and Comment
         uses: actions/github-script@v9
