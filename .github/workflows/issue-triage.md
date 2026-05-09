@@ -1,5 +1,5 @@
 ---
-description: "Triages new issues: labels by type and priority, identifies duplicates, asks clarifying questions, and assigns to the maintainer."
+description: "Triages new issues: labels by type and priority, identifies duplicates, and asks clarifying questions."
 on:
   issues:
     types: [opened]
@@ -32,7 +32,7 @@ Your job is to triage issue #${{ github.event.issue.number }} that was just open
 
 **Issue title**: ${{ github.event.issue.title }}
 
-Start by fetching the full issue details (body, author, existing labels) using the GitHub tools. If the GitHub tools are unavailable or fail, use the issue title and number already provided in this prompt to make a best-effort triage decision: you can still classify the issue type from the title pattern and apply labels and an assignment, but skip duplicate detection and detailed priority assessment (which require the full issue body).
+Start by fetching the full issue details (body, author, existing labels) using the GitHub tools. If the GitHub tools are unavailable or fail, use the issue title and number already provided in this prompt to make a best-effort triage decision: you can still classify the issue type from the title pattern and apply labels, but skip duplicate detection and detailed priority assessment (which require the full issue body).
 
 ## Your Triage Tasks
 
@@ -114,9 +114,9 @@ If clarification is needed, post a comment like:
 
 If the issue is already clear and complete, **do not** post an unnecessary comment and **do not** apply `needs-info`.
 
-### 6. Assign to the Maintainer
+### 6. Assignment
 
-Use `update_issue` to assign the issue to the repository maintainer `stonerl`, unless the issue is a confirmed duplicate (in which case no assignment is needed). When assigning, include `status: "open"` in the `update_issue` payload alongside `assignees` to satisfy safe-output validation; do not change the title or body unless necessary.
+Do not assign issues automatically. Leave assignment decisions to maintainers.
 
 ## Important Guidelines
 

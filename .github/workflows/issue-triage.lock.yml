@@ -22,7 +22,7 @@
 #
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
-# Triages new issues: labels by type and priority, identifies duplicates, asks clarifying questions, and assigns to the maintainer.
+# Triages new issues: labels by type and priority, identifies duplicates, and asks clarifying questions.
 #
 # Secrets used:
 #   - COPILOT_GITHUB_TOKEN
@@ -1080,7 +1080,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           WORKFLOW_NAME: "Issue Triage"
-          WORKFLOW_DESCRIPTION: "Triages new issues: labels by type and priority, identifies duplicates, asks clarifying questions, and assigns to the maintainer."
+          WORKFLOW_DESCRIPTION: "Triages new issues: labels by type and priority, identifies duplicates, and asks clarifying questions."
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -1259,4 +1259,3 @@ jobs:
           name: safe-outputs-items
           path: /tmp/gh-aw/safe-output-items.jsonl
           if-no-files-found: ignore
-
