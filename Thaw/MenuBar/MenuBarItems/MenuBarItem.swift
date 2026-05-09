@@ -455,6 +455,11 @@ extension MenuBarItem {
 
         assignStableInstanceIndices(to: &items, using: windows)
 
+        for item in items {
+            let srcBundle = item.sourceApplication?.bundleIdentifier ?? item.owningApplication?.bundleIdentifier ?? "nil"
+            diagLog.debug("item: \(item.logString) ns=\(item.tag.namespace) title=\(item.tag.title) srcPID=\(item.sourcePID ?? -1) srcBundle=\(srcBundle) winTitle=\(item.title ?? "nil")")
+        }
+
         let nilPIDItems = items.filter { $0.sourcePID == nil }
         if !nilPIDItems.isEmpty {
             let itemsDesc = nilPIDItems.prefix(3).map(\.logString).joined(separator: ", ")
