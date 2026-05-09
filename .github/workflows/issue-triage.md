@@ -116,7 +116,7 @@ If the issue is already clear and complete, **do not** post an unnecessary comme
 
 ### 6. Assign to the Maintainer
 
-Use `update_issue` to assign the issue to the repository maintainer `stonerl`, unless the issue is a confirmed duplicate (in which case no assignment is needed).
+Use `update_issue` to assign the issue to the repository maintainer `stonerl`, unless the issue is a confirmed duplicate (in which case no assignment is needed). When assigning, include `status: "open"` in the `update_issue` payload alongside `assignees` to satisfy safe-output validation; do not change the title or body unless necessary.
 
 ## Important Guidelines
 
