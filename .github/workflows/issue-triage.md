@@ -11,6 +11,7 @@ permissions:
   pull-requests: read
 tools:
   github:
+    allowed-repos: all
     mode: remote
     toolsets: [default, search, labels]
     min-integrity: approved
