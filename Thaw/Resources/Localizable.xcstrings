@@ -24230,7 +24230,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "V případě potřeby uvolněte místo v řádku nabídek skrytím nabídek aktuálních aplikací. Aby se aplikace %@ při aktivaci tohoto nastavení zobrazovala v Docku, je nutné, aby byla spuštěna."
+            "value" : "V případě potřeby automaticky uvolňovat místo v řádku nabídek skrytím nabídek aktuální aplikace. Po aktivaci tohoto nastavení systém macOS vyžaduje, aby byla aplikace %@ viditelná v Docku."
           }
         },
         "de" : {
