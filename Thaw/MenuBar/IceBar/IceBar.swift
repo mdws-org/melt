@@ -27,6 +27,12 @@ final class IceBarPanel: NSPanel {
     /// settings.
     private var hotkeyLocationOverride = false
 
+    /// Timestamp of most recent `show()`. Used to suppress
+    /// `didChangeScreenParametersNotification` auto-hide when the
+    /// user clicks an inactive screen's menubar (active menu bar
+    /// change posts that notification, racing with the show).
+    private var lastShowTimestamp: Date?
+
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -69,12 +75,23 @@ final class IceBarPanel: NSPanel {
         var c = Set<AnyCancellable>()
 
         // Hide the panel when the active space or screen parameters change.
+        // Guard against didChangeScreenParametersNotification racing with
+        // show(): clicking an inactive screen's menubar activates it, which
+        // posts this notification. Without the guard, the notification would
+        // hide the panel immediately after show() opened it.
         Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
         )
         .sink { [weak self] _ in
-            self?.hide()
+            guard
+                let self,
+                let ts = self.lastShowTimestamp,
+                Date().timeIntervalSince(ts) >= 1
+            else {
+                return
+            }
+            self.hide()
         }
         .store(in: &c)
 
@@ -208,6 +225,7 @@ final class IceBarPanel: NSPanel {
         // before updating the caches.
         appState.navigationState.isIceBarPresented = true
         currentSection = section
+        lastShowTimestamp = Date()
 
         // Show the panel immediately with whatever cached data we have.
         // The SwiftUI view observes itemManager and imageCache, so it
@@ -239,6 +257,15 @@ final class IceBarPanel: NSPanel {
         cacheTask = Task { [weak appState] in
             guard let appState else { return }
             await appState.itemManager.rehideTemporarilyShownItems(force: true)
+            guard !Task.isCancelled else { return }
+            // Settle delay: when the IceBar just opened on a screen that
+            // was previously inactive, the menu bar has moved screens and
+            // NSStatusItem windows (control item chevrons) are still
+            // positioning. Without this delay, cacheItemsIfNeeded can
+            // recache with stale/zero control item bounds, causing
+            // findSection() to misclassify all items as .visible and
+            // leave the hidden section cache empty ("No items…").
+            try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
             await appState.itemManager.cacheItemsIfNeeded()
             guard !Task.isCancelled else { return }
