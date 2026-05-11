@@ -124,6 +124,9 @@ final class HIDEventManager: ObservableObject {
     /// The ID of the display the mouse was last seen on.
     private var lastMouseScreenID: CGDirectDisplayID?
 
+    /// The ID of the display that last had the active menu bar.
+    private var lastActiveMenuBarDisplayID: CGDirectDisplayID?
+
     /// The pending tooltip show task.
     private var tooltipTask: Task<Void, any Error>?
 
@@ -146,6 +149,7 @@ final class HIDEventManager: ObservableObject {
                 }
                 mouseMovedTap.stop()
                 lastMouseScreenID = nil
+                lastActiveMenuBarDisplayID = nil
             }
         }
     }
@@ -198,6 +202,14 @@ final class HIDEventManager: ObservableObject {
             screen: screen
         )
         dismissMenuBarTooltip()
+
+        // update control item states when active menu bar display changes
+        let currentMenuBarID = NSScreen.screenWithActiveMenuBar?.displayID
+        if currentMenuBarID != lastActiveMenuBarDisplayID {
+            lastActiveMenuBarDisplayID = currentMenuBarID
+            appState.menuBarManager.updateControlItemStates()
+        }
+
         return event
     }
 
@@ -258,6 +270,13 @@ final class HIDEventManager: ObservableObject {
 
             if screenID != lastMouseScreenID {
                 lastMouseScreenID = screenID
+                appState.menuBarManager.updateControlItemStates(for: screen)
+            }
+
+            // also re-evaluate when active menu bar display changes
+            let currentMenuBarID = NSScreen.screenWithActiveMenuBar?.displayID
+            if currentMenuBarID != lastActiveMenuBarDisplayID {
+                lastActiveMenuBarDisplayID = currentMenuBarID
                 appState.menuBarManager.updateControlItemStates(for: screen)
             }
 

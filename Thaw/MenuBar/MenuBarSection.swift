@@ -291,8 +291,16 @@ final class MenuBarSection {
         }
 
         let displaySettings = appState.settings.displaySettings
-        let alwaysShow = displaySettings.alwaysShowHiddenItems(for: activeScreen.displayID)
         let useIceBar = displaySettings.useIceBar(for: activeScreen.displayID)
+
+        // only apply alwaysShowHiddenItems when mouse + active menu bar on same screen
+        let alwaysShow: Bool = if let menuBarScreen = NSScreen.screenWithActiveMenuBar,
+                                  menuBarScreen.displayID == NSScreen.screenWithMouse?.displayID
+        {
+            displaySettings.alwaysShowHiddenItems(for: menuBarScreen.displayID)
+        } else {
+            false
+        }
 
         if name == .hidden || name == .visible, alwaysShow, !useIceBar {
             controlItem.state = .showSection
