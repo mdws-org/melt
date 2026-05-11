@@ -639,9 +639,12 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     .removeDuplicates()
                     .assign(to: &$previewConfiguration)
 
-                appState.menuBarManager.$averageColorInfo
-                    .removeDuplicates()
-                    .assign(to: &$averageColorInfo)
+                appState.menuBarManager.$averageColors
+                    .sink { [weak self] colors in
+                        guard let self, let displayID = self.overlayPanel?.owningScreen.displayID else { return }
+                        self.averageColorInfo = colors[displayID]
+                    }
+                    .store(in: &c)
 
                 // Fade out whenever a menu bar item is being dragged.
                 appState.$isDraggingMenuBarItem

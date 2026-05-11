@@ -12,8 +12,11 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    /// Information for the menu bar's average color.
+    /// Information for the menu bar's average color on the active screen.
     @Published private(set) var averageColorInfo: MenuBarAverageColorInfo?
+
+    /// Per-screen average colors for multi-monitor adaptive backgrounds.
+    @Published private(set) var averageColors: [CGDirectDisplayID: MenuBarAverageColorInfo] = [:]
 
     /// A Boolean value that indicates whether the menu bar is either always hidden
     /// by the system, or automatically hidden and shown by the system based on the
@@ -399,8 +402,8 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
-    /// Updates the ``averageColorInfo`` property with the current average color
-    /// of the menu bar.
+    /// Updates the ``averageColorInfo`` and ``averageColors`` properties with
+    /// the current average color of the menu bar background per screen.
     func updateAverageColorInfo() {
         guard let appState else { return }
 
@@ -416,50 +419,56 @@ final class MenuBarManager: ObservableObject {
             return
         }
 
-        let screen: NSScreen? = if isSettingsVisible {
-            settingsWindow?.screen
-        } else if isAdaptiveActive {
-            NSScreen.screenWithActiveMenuBar
+        let targetScreens: [NSScreen]
+        if isAdaptiveActive {
+            targetScreens = NSScreen.screens
+        } else if isSettingsVisible {
+            targetScreens = [settingsWindow?.screen].compactMap(\.self)
         } else {
-            nil
+            guard let screen = NSScreen.screenWithActiveMenuBar else { return }
+            targetScreens = [screen]
         }
 
-        guard let screen else { return }
+        guard !targetScreens.isEmpty else { return }
 
         let windows = WindowInfo.createWindows(option: .onScreen)
-        let displayID = screen.displayID
+        let activeDisplayID = NSScreen.screenWithActiveMenuBar?.displayID
 
-        guard
-            let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: displayID),
-            let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: displayID)
-        else {
-            return
-        }
+        for screen in targetScreens {
+            let displayID = screen.displayID
 
-        guard
-            let image = ScreenCapture.captureWindows(
-                with: [menuBarWindow.windowID, wallpaperWindow.windowID],
-                screenBounds: withMutableCopy(of: wallpaperWindow.bounds) { $0.size.height = 1 },
-                option: .nominalResolution
-            ),
-            let color = image.averageColor(option: .ignoreAlpha)
-        else {
-            return
-        }
+            guard
+                let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: displayID),
+                let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: displayID),
+                let image = ScreenCapture.captureWindows(
+                    with: [menuBarWindow.windowID, wallpaperWindow.windowID],
+                    screenBounds: withMutableCopy(of: wallpaperWindow.bounds) { $0.size.height = 1 },
+                    option: .nominalResolution
+                ),
+                let color = image.averageColor(option: .ignoreAlpha)
+            else {
+                continue
+            }
 
-        let info = MenuBarAverageColorInfo(color: color, source: .menuBarWindow)
+            let info = MenuBarAverageColorInfo(color: color, source: .menuBarWindow)
 
-        if averageColorInfo != info {
-            averageColorInfo = info
+            if averageColors[displayID] != info {
+                averageColors[displayID] = info
+            }
+
+            if displayID == activeDisplayID, averageColorInfo != info {
+                averageColorInfo = info
+            }
         }
     }
 
     /// Attempts to capture the adaptive color with retries when the initial
     /// capture fails (e.g. during early app launch before the Window Server
-    /// is fully settled).
+    /// is fully settled). Retries until all screens have a color entry.
     private func captureAdaptiveColorWithRetry() {
         updateAverageColorInfo()
-        guard averageColorInfo == nil else { return }
+        let allCaptured = NSScreen.screens.allSatisfy { averageColors.keys.contains($0.displayID) }
+        guard !allCaptured else { return }
         var retries = 0
         func scheduleRetry() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
@@ -467,7 +476,8 @@ final class MenuBarManager: ObservableObject {
                 retries += 1
                 guard retries < 10 else { return }
                 updateAverageColorInfo()
-                if averageColorInfo == nil {
+                let allCaptured = NSScreen.screens.allSatisfy { averageColors.keys.contains($0.displayID) }
+                if !allCaptured {
                     scheduleRetry()
                 }
             }
