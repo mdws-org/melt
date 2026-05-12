@@ -2,16 +2,15 @@
 //  DisplaySettingsManagerSpacingGateTests.swift
 //  Project: Thaw
 //
+//  Copyright (Ice) © 2023–2025 Jordan Baird
 //  Copyright (Thaw) © 2026 Toni Förster
 //  Licensed under the GNU GPLv3
-//
 
 @testable import Thaw
 import XCTest
 
 @MainActor
 final class DisplaySettingsManagerSpacingGateTests: XCTestCase {
-
     // MARK: - Predicate
 
     func testPredicateSkipsWhenUUIDsMatch() {
@@ -50,7 +49,7 @@ final class DisplaySettingsManagerSpacingGateTests: XCTestCase {
     }
 
     func testPredicateIsStableAcrossRepeatedCalls() {
-        for _ in 0..<10 {
+        for _ in 0 ..< 10 {
             XCTAssertTrue(DisplaySettingsManager.shouldSkipSpacingApply(
                 currentActiveDisplayUUID: "UUID-A",
                 lastAppliedActiveDisplayUUID: "UUID-A"
