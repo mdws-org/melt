@@ -165,9 +165,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // macOS 26 stores keySenderPIDAttr as typeUInt32 ('magn') on arm64.
         // Accept any numeric type and extract the PID from raw descriptor data.
-        let integerTypes: Set<OSType> = [typeSInt16, typeSInt32, typeSInt64,
-                                         typeUInt16, typeUInt32, typeUInt64,
-                                         typeIEEE32BitFloatingPoint, typeIEEE64BitFloatingPoint]
+        let integerTypes: Set<OSType> = [
+            typeSInt16, typeSInt32, typeSInt64,
+            typeUInt16, typeUInt32, typeUInt64,
+            typeIEEE32BitFloatingPoint, typeIEEE64BitFloatingPoint,
+        ]
 
         var pid: pid_t = 0
 
