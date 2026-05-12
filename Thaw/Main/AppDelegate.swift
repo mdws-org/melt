@@ -157,20 +157,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Extracts the sender's bundle identifier from an Apple Event.
     private func extractSenderBundleId(from event: NSAppleEventDescriptor) -> String? {
-        // Try to get the sender's process ID from the event attributes
-        // keySenderPID is the attribute keyword for sender's process ID
         let keySenderPID = AEKeyword(keySenderPIDAttr)
 
-        guard let pidDesc = event.attributeDescriptor(forKeyword: keySenderPID),
-              pidDesc.descriptorType == typeSInt32 || pidDesc.descriptorType == typeSInt64
-        else {
+        guard let pidDesc = event.attributeDescriptor(forKeyword: keySenderPID) else {
             return nil
         }
 
-        let pid = pidDesc.int32Value
+        // macOS 26 stores keySenderPIDAttr as typeUInt32 ('magn') on arm64.
+        // Accept any numeric type and extract the PID from raw descriptor data.
+        let integerTypes: Set<OSType> = [typeSInt16, typeSInt32, typeSInt64,
+                                         typeUInt16, typeUInt32, typeUInt64,
+                                         typeIEEE32BitFloatingPoint, typeIEEE64BitFloatingPoint]
 
-        // Get the running application
-        guard let app = NSRunningApplication(processIdentifier: pid_t(pid)) else {
+        var pid: pid_t = 0
+
+        if integerTypes.contains(pidDesc.descriptorType) {
+            // Copy raw bytes regardless of storage type (typeUInt32, typeSInt64, etc.)
+            let data = pidDesc.data
+            let copyCount = min(data.count, MemoryLayout<pid_t>.size)
+            data.withUnsafeBytes { src in
+                withUnsafeMutableBytes(of: &pid) { dest in
+                    guard let srcPtr = src.baseAddress, let destPtr = dest.baseAddress else { return }
+                    memcpy(destPtr, srcPtr, copyCount)
+                }
+            }
+        } else {
+            // Fallback: try coercion for unknown types
+            let coerced = pidDesc.int32Value
+            guard coerced > 0 else { return nil }
+            pid = pid_t(coerced)
+        }
+
+        guard pid > 0 else { return nil }
+
+        guard let app = NSRunningApplication(processIdentifier: pid) else {
             return nil
         }
 
