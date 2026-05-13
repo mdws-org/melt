@@ -42,6 +42,11 @@ final class Listener: @unchecked Sendable {
                 let pid = SourcePIDCache.shared.pid(for: window)
                 diagLog.debug("Listener: sourcePID response for windowID=\(window.windowID) -> pid=\(pid.map { "\($0)" } ?? "nil")")
                 return .sourcePID(pid)
+            case let .sourcePIDs(windows):
+                diagLog.debug("Listener: sourcePIDs batch request for \(windows.count) windows")
+                let pids = SourcePIDCache.shared.pids(for: windows)
+                diagLog.debug("Listener: sourcePIDs batch response (\(pids.compactMap(\.self).count) resolved)")
+                return .sourcePIDs(pids)
             }
         } catch {
             diagLog.error("Listener failed to handle message with error \(error)")

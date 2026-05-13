@@ -70,6 +70,23 @@ extension MenuBarItemService {
                 return nil
             }
         }
+
+        /// Returns the source process identifiers for the given windows in a
+        /// single batch XPC request, avoiding concurrent thread explosion
+        /// in the XPC service.
+        func sourcePIDs(for windows: [WindowInfo]) async -> [pid_t?] {
+            let response = await session.sendAsync(request: .sourcePIDs(windows))
+            guard let response else {
+                diagLog.error("Source PIDs batch request returned nil")
+                return Array(repeating: nil, count: windows.count)
+            }
+            if case let .sourcePIDs(pids) = response {
+                return pids
+            } else {
+                diagLog.error("Source PIDs batch request returned invalid response \(String(describing: response))")
+                return Array(repeating: nil, count: windows.count)
+            }
+        }
     }
 }
 

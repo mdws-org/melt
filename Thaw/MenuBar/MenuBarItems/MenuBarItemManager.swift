@@ -4884,23 +4884,9 @@ extension MenuBarItemManager {
         return result
     }
 
-    private static nonisolated func resolveSourcePID(for window: WindowInfo) async -> pid_t? {
-        try? await Task<pid_t?, any Error>.withTimeout(.seconds(2)) {
-            await MenuBarItemService.Connection.shared.sourcePID(for: window)
-        }
-    }
-
     private static nonisolated func resolveAllSourcePIDs(for windows: [WindowInfo]) async -> Set<pid_t> {
-        await withTaskGroup(of: pid_t?.self, returning: Set<pid_t>.self) { group in
-            for window in windows {
-                group.addTask { await MenuBarItemManager.resolveSourcePID(for: window) }
-            }
-            var pids = Set<pid_t>()
-            for await pid in group {
-                if let pid { pids.insert(pid) }
-            }
-            return pids
-        }
+        let pids = await MenuBarItemService.Connection.shared.sourcePIDs(for: windows)
+        return Set(pids.compactMap(\.self))
     }
 }
 

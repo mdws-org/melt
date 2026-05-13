@@ -16,10 +16,12 @@ extension MenuBarItemService {
     enum Request: Codable {
         case start
         case sourcePID(WindowInfo)
+        case sourcePIDs([WindowInfo])
     }
 
     enum Response: Codable {
         case start
         case sourcePID(pid_t?)
+        case sourcePIDs([pid_t?])
     }
 }

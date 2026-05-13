@@ -370,31 +370,24 @@ extension MenuBarItem {
             return makeItemsWithoutResolvingSourcePID(from: windows)
         }
 
-        var items = await withTaskGroup(of: (Int, MenuBarItem).self) { group in
-            for (index, window) in windows.enumerated() {
-                group.addTask {
-                    // Check for our own control items by title and owner.
-                    // On macOS 26, these are owned by Control Center.
-                    if let title = window.title, title.hasPrefix("Thaw.ControlItem.") {
-                        let ccBundleID = "com.apple.controlcenter"
-                        if window.owningApplication?.bundleIdentifier == ccBundleID ||
-                            window.ownerPID == ProcessInfo.processInfo.processIdentifier
-                        {
-                            return await (index, MenuBarItem(uncheckedItemWindow: window, sourcePID: ProcessInfo.processInfo.processIdentifier))
-                        }
-                    }
+        // Single batch XPC call — resolves all PIDs in one request,
+        // avoiding concurrent thread explosion in the XPC service.
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let ccBundleID = "com.apple.controlcenter"
 
-                    let sourcePID = await MenuBarItemService.Connection.shared.sourcePID(for: window)
-                    return await (index, MenuBarItem(uncheckedItemWindow: window, sourcePID: sourcePID))
-                }
+        let controlItemIndices = Set(windows.indices.filter { i in
+            guard let title = windows[i].title, title.hasPrefix("Thaw.ControlItem.") else {
+                return false
             }
+            return windows[i].owningApplication?.bundleIdentifier == ccBundleID ||
+                windows[i].ownerPID == ownPID
+        })
 
-            var indexedItems = [(Int, MenuBarItem)]()
-            for await result in group {
-                indexedItems.append(result)
-            }
+        let pids = await MenuBarItemService.Connection.shared.sourcePIDs(for: windows)
 
-            return indexedItems.sorted(by: { $0.0 < $1.0 }).map(\.1)
+        var items = windows.enumerated().map { index, window in
+            let pid: pid_t? = controlItemIndices.contains(index) ? ownPID : pids[index]
+            return MenuBarItem(uncheckedItemWindow: window, sourcePID: pid)
         }
 
         // Post-resolution pass: fix up items with nil sourcePID.

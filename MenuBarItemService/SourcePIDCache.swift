@@ -265,6 +265,29 @@ final class SourcePIDCache {
         }
     }
 
+    /// Returns the cached process identifiers for the given windows,
+    /// performing a single batch resolution if any are missing.
+    ///
+    /// `pidBody` already caches **all** matched windows during its full
+    /// AX scan, so after one call all resolvable PIDs are available.
+    func pids(for windows: [WindowInfo]) -> [pid_t?] {
+        autoreleasepool {
+            pidsBody(for: windows)
+        }
+    }
+
+    private func pidsBody(for windows: [WindowInfo]) -> [pid_t?] {
+        let needsScan = windows.contains { window in
+            state.withLock { $0.pids[window.windowID] == nil }
+        }
+        if needsScan, let first = windows.first {
+            _ = pidBody(for: first)
+        }
+        return windows.map { window in
+            state.withLock { $0.pids[window.windowID] }
+        }
+    }
+
     private func pidBody(for window: WindowInfo) -> pid_t? {
         if let pid = state.withLock({ $0.pids[window.windowID] }) {
             SourcePIDCache.diagLog.debug("SourcePIDCache.pid: cache hit for windowID \(window.windowID) -> PID \(pid)")
