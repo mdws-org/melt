@@ -14,7 +14,7 @@ tools:
     allowed-repos: all
     mode: remote
     toolsets: [default, search, labels]
-    min-integrity: untrusted
+    min-integrity: unapproved
 safe-outputs:
   add-comment:
     max: 1
