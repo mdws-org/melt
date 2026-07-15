@@ -47,6 +47,15 @@ jobs:
         run: |
           set -euo pipefail
           APP="build/Archive.xcarchive/Products/Applications/Thaw.app"
+          # Uniform ad-hoc re-sign, deepest first: prebuilt frameworks
+          # (Sparkle) keep their original Team ID, and dyld refuses to load
+          # a team-signed framework into an ad-hoc main executable.
+          find "$APP/Contents/Frameworks" \( -name "*.xpc" -o -name "*.app" \) -maxdepth 5 -print0 2>/dev/null \
+            | xargs -0 -I{} codesign --force -s - --preserve-metadata=entitlements "{}"
+          for f in "$APP"/Contents/Frameworks/*.framework "$APP"/Contents/XPCServices/*.xpc; do
+            [ -e "$f" ] && codesign --force -s - --preserve-metadata=entitlements "$f"
+          done
+          codesign --force -s - --preserve-metadata=entitlements "$APP"
           codesign -vvv --deep --strict "$APP"
           plutil -p "$APP/Contents/Info.plist" | grep -E 'CFBundleShortVersionString|CFBundleVersion'
           ditto -c -k --keepParent "$APP" Thaw-patched.zip
