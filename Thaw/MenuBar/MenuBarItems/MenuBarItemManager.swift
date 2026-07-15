@@ -6914,6 +6914,23 @@ extension MenuBarItemManager {
             return false
         }
 
+        // Identity-resolution gate. When the XPC sourcePID resolution fails
+        // (service cold start, connection interruption), third-party items
+        // collapse to ambiguous Control-Center-owned identifiers that cannot
+        // be matched against the saved layout, and the bulk apply rearranges
+        // them blindly. A handful of system items (WiFi, Clock, BentoBox) and
+        // Thaw's own control items legitimately resolve to nil, so only skip
+        // when a majority is unresolved. A later tick retries once the
+        // service recovers — mirrors relocateNewLeftmostItems's
+        // unresolved-sourcePID noop.
+        let unresolvedCount = items.filter { $0.sourcePID == nil }.count
+        if items.count >= 4, unresolvedCount * 2 > items.count {
+            MenuBarItemManager.diagLog.info(
+                "applySavedLayout: skipping, \(unresolvedCount)/\(items.count) items have unresolved sourcePIDs (XPC resolution likely failed)"
+            )
+            return false
+        }
+
         // Saved-item intersection: skip if none of the saved items are
         // currently present. Prefer exact namespace/title/instance matches;
         // fall back to namespace/title only when every saved instance for that
