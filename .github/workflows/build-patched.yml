@@ -1,0 +1,74 @@
+name: Build Patched (ad-hoc)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - patched
+
+concurrency:
+  group: build-patched-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same pin as upstream build-dmg.yml — other Xcode versions have issues
+      - run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v5
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: xcodebuild archive (ad-hoc signed)
+        run: |
+          xcodebuild archive \
+            -project Thaw.xcodeproj \
+            -scheme Thaw \
+            -destination platform=macOS \
+            -configuration Release \
+            -archivePath build/Archive.xcarchive \
+            MACOSX_DEPLOYMENT_TARGET=26.0 \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="-" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Verify and zip app
+        run: |
+          set -euo pipefail
+          APP="build/Archive.xcarchive/Products/Applications/Thaw.app"
+          codesign -vvv --deep --strict "$APP"
+          plutil -p "$APP/Contents/Info.plist" | grep -E 'CFBundleShortVersionString|CFBundleVersion'
+          ditto -c -k --keepParent "$APP" Thaw-patched.zip
+          shasum -a 256 Thaw-patched.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Thaw-patched
+          path: Thaw-patched.zip
+          retention-days: 7
+
+      # Also publish the zip to an orphan branch so it can be fetched over
+      # plain git/SSH without API auth.
+      - name: Push zip to build-output branch
+        run: |
+          set -euo pipefail
+          SRC_SHA=$(git rev-parse HEAD)
+          mkdir /tmp/out && cp Thaw-patched.zip /tmp/out/
+          cd /tmp/out
+          git init -q -b build-output
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Thaw-patched.zip
+          git commit -q -m "build: Thaw-patched.zip from $SRC_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" build-output
