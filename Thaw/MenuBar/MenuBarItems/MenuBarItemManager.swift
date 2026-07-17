@@ -6768,19 +6768,20 @@ extension MenuBarItemManager {
         let hiddenMaxX = controlItems.hidden.bounds.maxX
         let ahBounds = controlItems.alwaysHidden?.bounds
 
-        // While the active menu bar is on a notched display, items the
-        // overflow rebalance ejected diverge from the saved layout by
-        // design — reporting them as divergent would re-dispatch a bulk
-        // apply every cache cycle. On a non-notched display the divergence
-        // is real and wanted: it's what triggers the apply that restores
-        // the ejected items to their saved visible positions.
-        let notchActive = (NSScreen.screenWithActiveMenuBar ?? NSScreen.main)?.hasNotch ?? false
+        // While the overflow feature is enabled and the active menu bar is
+        // on a notched display, items the overflow rebalance ejected into
+        // hidden diverge from the saved layout by design — reporting them
+        // as divergent would re-dispatch a bulk apply every cache cycle.
+        // The skip requires all three of: the feature still enabled (a
+        // toggle-off must restore items promptly), a notched active display
+        // (elsewhere the divergence is what triggers the restoring apply),
+        // and the item actually sitting in hidden (an ejected item that
+        // drifted to another section is genuine drift).
+        let overflowSkipActive = (appState?.settings.advanced.enableMenuBarItemOverflow ?? false)
+            && ((NSScreen.screenWithActiveMenuBar ?? NSScreen.main)?.hasNotch ?? false)
 
         for item in items where !item.isControlItem && item.canBeHidden && item.isMovable {
             let identifier = item.uniqueIdentifier
-            if notchActive, notchOverflowEjectedUIDs.contains(identifier) {
-                continue
-            }
             let baseID = Self.baseIdentifier(forSavedIdentifier: identifier)
             guard let expectedSection = sectionLookup.exact[identifier]
                 ?? sectionLookup.unambiguousBase[baseID]
@@ -6801,6 +6802,12 @@ extension MenuBarItemManager {
             }
 
             guard let currentSection else { continue }
+            if overflowSkipActive,
+               currentSection == .hidden,
+               notchOverflowEjectedUIDs.contains(item.uniqueIdentifier)
+            {
+                continue
+            }
             if currentSection != expectedSection {
                 return true
             }

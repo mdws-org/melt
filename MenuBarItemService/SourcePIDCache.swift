@@ -561,6 +561,7 @@ final class SourcePIDCache {
                 )
                 state.withLock { $0.pids[window.windowID] = pid }
                 unresolvedWindows.remove(window.windowID)
+                totalMatchesFound += 1
             }
         }
 
