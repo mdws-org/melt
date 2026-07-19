@@ -1,3 +1,26 @@
+# melt
+
+**melt** is a downstream build of [Thaw](https://github.com/stonerl/Thaw), a macOS
+menu bar management tool. Thaw is itself a fork of
+[Ice](https://github.com/jordanbaird/Ice) by Jordan Baird.
+
+This repository carries local patches — bug fixes and compatibility changes — that
+are not yet in upstream Thaw. Where a patch is generally useful it is offered back
+to Thaw as a pull request first; melt exists to build and run these changes in the
+meantime. It is not a hostile fork and does not claim to replace Thaw, which is
+actively maintained.
+
+Development here is largely agent-driven with human review.
+
+License and attribution are unchanged from the upstream projects: melt is licensed
+under the **GNU General Public License v3** (see [LICENSE](LICENSE)), and all Thaw
+and Ice copyright notices are retained. Per the GPL, any distributed build ships
+with its corresponding source.
+
+---
+
+_The upstream Thaw README follows, unmodified._
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" width="400" srcset="Resources/headers/Header_Dark.svg">
