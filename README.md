@@ -1,5 +1,10 @@
 # melt
 
+> **A personal-use fork.** melt is a private build the maintainer runs on their own
+> machines. It is public only for transparency and to meet the GPL's
+> source-availability requirement — not a supported release or a distribution
+> channel. If you want Thaw, get it from [upstream](https://github.com/stonerl/Thaw).
+
 **melt** is a downstream build of [Thaw](https://github.com/stonerl/Thaw), a macOS
 menu bar management tool. Thaw is itself a fork of
 [Ice](https://github.com/jordanbaird/Ice) by Jordan Baird.
