@@ -55,3 +55,24 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:swift"
+
+  # Workflow-file scanning, carried over from the org default setup (which is
+  # disabled on this repo: its Swift autobuild segfaults, so scanning runs
+  # here in advanced mode instead — and the two modes cannot coexist).
+  analyze-actions:
+    name: Analyze (Actions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: actions
+          build-mode: none
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:actions"
