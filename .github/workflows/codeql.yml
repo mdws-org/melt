@@ -1,0 +1,57 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "14 9 * * 1" # weekly, Monday 09:14 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (Swift)
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same pin as ci.yml — other Xcode versions have issues
+      - run: sudo xcode-select -s /Applications/Xcode_26.5.app/Contents/Developer
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: manual
+
+      # Clean build, deliberately WITHOUT ci.yml's Swift compilation cache:
+      # CodeQL traces the compiler, so a cache hit means an unanalyzed file.
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Thaw.xcodeproj \
+            -scheme Thaw \
+            -derivedDataPath Build/ \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:swift"
